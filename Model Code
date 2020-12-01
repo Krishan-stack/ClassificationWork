@@ -1,0 +1,1448 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Untitled1.ipynb",
+      "provenance": [],
+      "authorship_tag": "ABX9TyMNgUD4c1f32QfZpq45ovdS",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Krishan-stack/ClassificationWork/blob/main/Model%20Code\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "tXHLoFtor5A6",
+        "outputId": "5c39e075-8592-4fe2-96fd-df2bd955c4e4"
+      },
+      "source": [
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "import matplotlib.pyplot as plt\n",
+        "import csv\n",
+        "\n",
+        "#cleaning stopwords list creation\n",
+        "import nltk\n",
+        "nltk.download('stopwords')\n",
+        "from nltk.corpus import stopwords\n",
+        "\n",
+        "#embeddings creation \n",
+        "import tensorflow as tf\n",
+        "from tensorflow.keras.preprocessing.text import Tokenizer\n",
+        "from tensorflow.keras.preprocessing.sequence import pad_sequences\n",
+        "from tensorflow.keras.utils import to_categorical\n",
+        "from tensorflow.keras import regularizers\n"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[nltk_data] Downloading package stopwords to /root/nltk_data...\n",
+            "[nltk_data]   Unzipping corpora/stopwords.zip.\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "B7XhIk2LhHY1"
+      },
+      "source": [
+        "This section uploads the different types of patents to file from github"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 221
+        },
+        "id": "pSJqrTIfwPGL",
+        "outputId": "8b6bd20f-91ce-46c4-f0fe-595d47035408"
+      },
+      "source": [
+        "url1 = 'https://raw.githubusercontent.com/Krishan-stack/ClassifcationWork/main/classificationdata.csv?token=AMLLGCKTKPVA5F3YGRWRIRC7YX7ZA'\n",
+        "\n",
+        "dataset1 = pd.read_csv(url1)\n",
+        "print(len(dataset1['patent_number']))\n",
+        "dataset1.head()"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "3689\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>An embodiment is a memory card including a rec...</td>\n",
+              "      <td>10007306</td>\n",
+              "      <td>276-pin buffered memory card with enhanced mem...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>To detect an abnormality in an interrupt contr...</td>\n",
+              "      <td>10042791</td>\n",
+              "      <td>Abnormal interrupt request processing</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>A system and method for managing power in a su...</td>\n",
+              "      <td>10080195</td>\n",
+              "      <td>Access and power management for centralized ne...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/13</td>\n",
+              "      <td>A first threshold number of cache lines may be...</td>\n",
+              "      <td>9965391</td>\n",
+              "      <td>Access cache line from lower level cache</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>Concepts and technologies described herein rel...</td>\n",
+              "      <td>10091721</td>\n",
+              "      <td>Access network discovery and selection functio...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "  cpc_group_id  ... patent_year\n",
+              "0         Y02D  ...        2018\n",
+              "1         Y02D  ...        2018\n",
+              "2         Y02D  ...        2018\n",
+              "3         Y02D  ...        2018\n",
+              "4         Y02D  ...        2018\n",
+              "\n",
+              "[5 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 221
+        },
+        "id": "3DHur9qU5Ttc",
+        "outputId": "370a263e-41d9-433c-eca3-7e5a5e08db48"
+      },
+      "source": [
+        "url2 ='https://raw.githubusercontent.com/Krishan-stack/ClassifcationWork/main/G16Hdata.csv?token=AMLLGCMIK52UNWIGYX4ATHS7YX7ZG'\n",
+        "dataset2 = pd.read_csv(url2)\n",
+        "print(len(dataset2['patent_number']))\n",
+        "dataset2.head()"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "2839\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>G16H</td>\n",
+              "      <td>G16H50/20</td>\n",
+              "      <td>A method for reconstructing 3-D vessel geometr...</td>\n",
+              "      <td>9934566</td>\n",
+              "      <td>3-D vessel tree surface reconstruction method</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>G16H</td>\n",
+              "      <td>G16H30/40</td>\n",
+              "      <td>A system and method for corrected imaging incl...</td>\n",
+              "      <td>10089737</td>\n",
+              "      <td>3D corrected imaging</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>G16H</td>\n",
+              "      <td>G16H50/20</td>\n",
+              "      <td>A method and apparatus are used to compare an ...</td>\n",
+              "      <td>10105554</td>\n",
+              "      <td>3D tracking of an HDR source using a flat pane...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>G16H</td>\n",
+              "      <td>G16H30/20</td>\n",
+              "      <td>A medical image data processing method for det...</td>\n",
+              "      <td>9870446</td>\n",
+              "      <td>3D-volume viewing by controlling sight depth</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>G16H</td>\n",
+              "      <td>G16H10/65</td>\n",
+              "      <td>Disclosed are various embodiments for providin...</td>\n",
+              "      <td>10157339</td>\n",
+              "      <td>Access control for encrypted data in machine-r...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "  cpc_group_id  ... patent_year\n",
+              "0         G16H  ...        2018\n",
+              "1         G16H  ...        2018\n",
+              "2         G16H  ...        2018\n",
+              "3         G16H  ...        2018\n",
+              "4         G16H  ...        2018\n",
+              "\n",
+              "[5 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 6
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 221
+        },
+        "id": "h_FfU_Lk7EBD",
+        "outputId": "a4c5f16e-b081-4c41-8db5-af847178ee99"
+      },
+      "source": [
+        "url3 = 'https://raw.githubusercontent.com/Krishan-stack/ClassifcationWork/main/G16Bdata.csv?token=AMLLGCJZ6EKDHFS64KDMOCC7YX7ZM'\n",
+        "dataset3 = pd.read_csv(url3)\n",
+        "print(len(dataset3['patent_number']))\n",
+        "dataset3.head()"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "429\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B25/00</td>\n",
+              "      <td>A novel electronic system provides fast three-...</td>\n",
+              "      <td>10116913</td>\n",
+              "      <td>3D virtual reality model sharing and monetizat...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B40/00</td>\n",
+              "      <td>Various embodiments for methods and systems th...</td>\n",
+              "      <td>9903830</td>\n",
+              "      <td>Accurate analyte measurements for electrochemi...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B40/00</td>\n",
+              "      <td>Various embodiments for a method that allow fo...</td>\n",
+              "      <td>9903831</td>\n",
+              "      <td>Accurate analyte measurements for electrochemi...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B30/00</td>\n",
+              "      <td>Accurate and fast mapping of sequencing reads ...</td>\n",
+              "      <td>10127351</td>\n",
+              "      <td>Accurate and fast mapping of reads to genome</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B99/00</td>\n",
+              "      <td>A method of measuring and calculating (prefera...</td>\n",
+              "      <td>9869684</td>\n",
+              "      <td>Accurate measurement of glutathione for diseas...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "  cpc_group_id  ... patent_year\n",
+              "0         G16B  ...        2018\n",
+              "1         G16B  ...        2018\n",
+              "2         G16B  ...        2018\n",
+              "3         G16B  ...        2018\n",
+              "4         G16B  ...        2018\n",
+              "\n",
+              "[5 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 7
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 221
+        },
+        "id": "-sqHX7KOYWdK",
+        "outputId": "0b4e6f7e-f019-4860-8ce5-4ea69da1a5be"
+      },
+      "source": [
+        "url4 ='https://raw.githubusercontent.com/Krishan-stack/ClassifcationWork/main/G16B(2019).csv?token=AMLLGCO7GO5ZMORA6AN2MBS7YYAEO' \n",
+        "dataset4 = pd.read_csv(url4)\n",
+        "print(len(dataset4['patent_number']))\n",
+        "dataset4.head()"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "638\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B20/00</td>\n",
+              "      <td>Methods and systems for accelerated input data...</td>\n",
+              "      <td>10522241</td>\n",
+              "      <td>Accelerating genomic data parsing on field pro...</td>\n",
+              "      <td>2019</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B20/00</td>\n",
+              "      <td>Embodiments of the present invention provide m...</td>\n",
+              "      <td>10457990</td>\n",
+              "      <td>Accurate deduction of fetal DNA fraction with ...</td>\n",
+              "      <td>2019</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B20/00</td>\n",
+              "      <td>Embodiments of the present disclosure present ...</td>\n",
+              "      <td>10176294</td>\n",
+              "      <td>Accurate typing of HLA through exome sequencing</td>\n",
+              "      <td>2019</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B30/00</td>\n",
+              "      <td>Embodiments of the present invention include m...</td>\n",
+              "      <td>10169531</td>\n",
+              "      <td>Algebraic phasing of polyploids</td>\n",
+              "      <td>2019</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>G16B</td>\n",
+              "      <td>G16B30/00</td>\n",
+              "      <td>Embodiments of the present invention include m...</td>\n",
+              "      <td>10176296</td>\n",
+              "      <td>Algebraic phasing of polyploids</td>\n",
+              "      <td>2019</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "  cpc_group_id  ... patent_year\n",
+              "0         G16B  ...        2019\n",
+              "1         G16B  ...        2019\n",
+              "2         G16B  ...        2019\n",
+              "3         G16B  ...        2019\n",
+              "4         G16B  ...        2019\n",
+              "\n",
+              "[5 rows x 6 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 11
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 289
+        },
+        "id": "Z7XOUUfNZZAP",
+        "outputId": "b7effd9b-ba32-4863-94e2-2c4a8fd1468d"
+      },
+      "source": [
+        "#combine the four different dataframes into one large dataframe\n",
+        "frames = [dataset1, dataset2, dataset3, dataset4]\n",
+        "\n",
+        "data = pd.concat(frames).reset_index()\n",
+        "print(len(data['patent_number']))\n",
+        "data.head()                   "
+      ],
+      "execution_count": 46,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "7595\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>index</th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>An embodiment is a memory card including a rec...</td>\n",
+              "      <td>10007306</td>\n",
+              "      <td>276-pin buffered memory card with enhanced mem...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>1</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>To detect an abnormality in an interrupt contr...</td>\n",
+              "      <td>10042791</td>\n",
+              "      <td>Abnormal interrupt request processing</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>2</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>A system and method for managing power in a su...</td>\n",
+              "      <td>10080195</td>\n",
+              "      <td>Access and power management for centralized ne...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>3</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/13</td>\n",
+              "      <td>A first threshold number of cache lines may be...</td>\n",
+              "      <td>9965391</td>\n",
+              "      <td>Access cache line from lower level cache</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>4</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>Concepts and technologies described herein rel...</td>\n",
+              "      <td>10091721</td>\n",
+              "      <td>Access network discovery and selection functio...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "   index  ... patent_year\n",
+              "0      0  ...        2018\n",
+              "1      1  ...        2018\n",
+              "2      2  ...        2018\n",
+              "3      3  ...        2018\n",
+              "4      4  ...        2018\n",
+              "\n",
+              "[5 rows x 7 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 46
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 289
+        },
+        "id": "_jMXrrjafPy-",
+        "outputId": "4569597c-4d4b-45d4-d4d2-bee06a6496dc"
+      },
+      "source": [
+        "data_final= data.dropna(subset=[\"patent_abstract\"]) \n",
+        "print(len(data_final['patent_number']))\n",
+        "data_final.head()"
+      ],
+      "execution_count": 47,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "7595\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>index</th>\n",
+              "      <th>cpc_group_id</th>\n",
+              "      <th>cpc_subgroup_id</th>\n",
+              "      <th>patent_abstract</th>\n",
+              "      <th>patent_number</th>\n",
+              "      <th>patent_title</th>\n",
+              "      <th>patent_year</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>0</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>An embodiment is a memory card including a rec...</td>\n",
+              "      <td>10007306</td>\n",
+              "      <td>276-pin buffered memory card with enhanced mem...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>1</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/14</td>\n",
+              "      <td>To detect an abnormality in an interrupt contr...</td>\n",
+              "      <td>10042791</td>\n",
+              "      <td>Abnormal interrupt request processing</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>2</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>A system and method for managing power in a su...</td>\n",
+              "      <td>10080195</td>\n",
+              "      <td>Access and power management for centralized ne...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>3</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D10/13</td>\n",
+              "      <td>A first threshold number of cache lines may be...</td>\n",
+              "      <td>9965391</td>\n",
+              "      <td>Access cache line from lower level cache</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>4</td>\n",
+              "      <td>Y02D</td>\n",
+              "      <td>Y02D70/00</td>\n",
+              "      <td>Concepts and technologies described herein rel...</td>\n",
+              "      <td>10091721</td>\n",
+              "      <td>Access network discovery and selection functio...</td>\n",
+              "      <td>2018</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "   index  ... patent_year\n",
+              "0      0  ...        2018\n",
+              "1      1  ...        2018\n",
+              "2      2  ...        2018\n",
+              "3      3  ...        2018\n",
+              "4      4  ...        2018\n",
+              "\n",
+              "[5 rows x 7 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 47
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "KmtsJJtIZ2wN"
+      },
+      "source": [
+        "corpus= []\n",
+        "\n",
+        "num_sentences = 0\n",
+        "\n",
+        "for i in range(len(data_final['patent_number'])):\n",
+        "  list_item = []\n",
+        "  list_item.append(data_final['patent_abstract'][i])\n",
+        "  this_label= str(data_final['cpc_group_id'][i])\n",
+        "  list_item.append(this_label)\n",
+        "  num_sentences = num_sentences + 1\n",
+        "  corpus.append(list_item)"
+      ],
+      "execution_count": 50,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "cp8zl8Nxe80_",
+        "outputId": "670d3352-3c5f-4f9a-b6fb-452f2332d99e"
+      },
+      "source": [
+        "print(num_sentences)\n",
+        "print(len(corpus))\n",
+        "print(corpus[1])\n"
+      ],
+      "execution_count": 51,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "7595\n",
+            "7595\n",
+            "['To detect an abnormality in an interrupt control system without completely depending on dualization of a circuit, without the need to create a test pattern for a built-in self-test by spending time, and without considerably increasing an amount of power consumption. A test interrupt request is generated periodically using a timer or the like in an interrupt signal system from an interrupt controller to a central processing unit, the state of an interrupt request flag within the interrupt controller is checked in an interrupt processing routine, and in the case where it is detected that the same interrupt request flag is kept in a set state twice or more in succession, it is supposed that there is a high possibility that a failure has occurred in the interrupt signal system and it is considered that there is an abnormality.', 'Y02D']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "PUFW_oZViBvX",
+        "outputId": "d5ef0503-463a-4009-a9b4-b5dc9ae4489f"
+      },
+      "source": [
+        "import random #to randomly shuffle data for when we generate training and validation dataset\n",
+        "\n",
+        "sentences = []\n",
+        "labels = []\n",
+        "random.shuffle(corpus)\n",
+        "stopwords = set(nltk.corpus.stopwords.words(\"english\"))\n",
+        "total_size= num_sentences\n",
+        "\n",
+        "for i in range (total_size):\n",
+        "  labels.append(corpus[i][1])\n",
+        "  sent = corpus[i][0]\n",
+        "  for word in stopwords:\n",
+        "    token = \" \" + word + \" \"\n",
+        "    sent = sent.replace(token, \" \")\n",
+        "  sentences.append(sent)\n",
+        "\n",
+        "print(len(labels))\n",
+        "print(len(sentences))\n",
+        "print(sentences[1])"
+      ],
+      "execution_count": 59,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "7595\n",
+            "7595\n",
+            "Systems methods prediction activity session mobile network use optimization user experience enhancement disclosed. In one aspect, embodiments present disclosure include method, may implemented system enhancing user experience mobile application mobile device including, using user activity characteristics mobile device server activity characteristics host server anticipate future activity session mobile device transferring impending content host server mobile device pre-cache content mobile device support predicted data activity future activity session predicted.\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "whRqXGfulkJ3",
+        "outputId": "95eb0d68-a118-4202-c9d3-114d7480c66f"
+      },
+      "source": [
+        "training_portion = 0.9\n",
+        "train_size = int(0.9*total_size)\n",
+        "\n",
+        "train_sentences = sentences[0:train_size]\n",
+        "train_labels = labels[0:train_size]\n",
+        "\n",
+        "val_sentences = sentences[train_size:]\n",
+        "val_labels = labels[train_size:]\n",
+        "\n",
+        "print(train_size)\n",
+        "print(len(train_sentences))\n",
+        "print(len(train_labels))\n",
+        "print(len(val_sentences))\n",
+        "print(len(val_labels))"
+      ],
+      "execution_count": 60,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "6835\n",
+            "6835\n",
+            "6835\n",
+            "760\n",
+            "760\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yFEj6veQpvy0",
+        "outputId": "756c02ea-7a97-4ec3-a42b-f7983fbc4700"
+      },
+      "source": [
+        "vocab_size = 6000\n",
+        "embedding_dim = 32\n",
+        "max_length = 200\n",
+        "trunc_type='post'\n",
+        "padding_type='post'\n",
+        "oov_tok = \"<OOV>\"\n",
+        "\n",
+        "\n",
+        "tokenizer = Tokenizer(num_words= vocab_size, oov_token=oov_tok)\n",
+        "tokenizer.fit_on_texts(train_sentences)\n",
+        "word_index = tokenizer.word_index\n",
+        "\n",
+        "train_sequences = tokenizer.texts_to_sequences(train_sentences)\n",
+        "train_padded = pad_sequences(train_sequences, padding=padding_type, truncating=trunc_type, maxlen=max_length)\n",
+        "\n",
+        "print(len(train_sequences[0]))\n",
+        "print(len(train_padded[0]))\n",
+        "\n",
+        "print(len(train_sequences[1]))\n",
+        "print(len(train_padded[1]))\n",
+        "\n"
+      ],
+      "execution_count": 93,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "101\n",
+            "200\n",
+            "69\n",
+            "200\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BVfHtmF3qrtE",
+        "outputId": "d0e03199-b8d8-4824-ef77-2f195186aa80"
+      },
+      "source": [
+        "val_sequences = tokenizer.texts_to_sequences(val_sentences)\n",
+        "val_padded = pad_sequences(val_sequences, padding=padding_type, maxlen=max_length)\n",
+        "\n",
+        "print(len(val_sequences))\n",
+        "print(val_padded.shape)"
+      ],
+      "execution_count": 94,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "760\n",
+            "(760, 200)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_nBBoN_YrjY3",
+        "outputId": "527f0f89-07fb-4ba3-a2c1-13057cb3550c"
+      },
+      "source": [
+        "label_tokenizer = Tokenizer()\n",
+        "label_tokenizer.fit_on_texts(labels)\n",
+        "\n",
+        "label_index = label_tokenizer.word_index\n",
+        "print(label_index)\n",
+        "\n",
+        "training_label_seq = np.array(label_tokenizer.texts_to_sequences(train_labels))\n",
+        "val_label_seq = np.array(label_tokenizer.texts_to_sequences(val_labels))\n",
+        "\n",
+        "print(training_label_seq[0])\n",
+        "print(training_label_seq[200])\n",
+        "print(training_label_seq.shape)\n",
+        "\n",
+        "print(val_label_seq[0])\n",
+        "print(val_label_seq[500])\n",
+        "print(val_label_seq.shape)"
+      ],
+      "execution_count": 95,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "{'y02d': 1, 'g16h': 2, 'g16b': 3}\n",
+            "[1]\n",
+            "[3]\n",
+            "(6835, 1)\n",
+            "[1]\n",
+            "[2]\n",
+            "(760, 1)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "coYCO1txsUTu",
+        "outputId": "ce6a2f6c-4918-4a61-9981-f0cdabba7038"
+      },
+      "source": [
+        "model = tf.keras.Sequential([\n",
+        "    tf.keras.layers.Embedding(vocab_size +1, embedding_dim, input_length=max_length),\n",
+        "    tf.keras.layers.GlobalAveragePooling1D(),\n",
+        "    tf.keras.layers.Dense(24, activation='relu'),\n",
+        "    tf.keras.layers.Dense(6, activation='softmax')\n",
+        "])\n",
+        "model.compile(loss='sparse_categorical_crossentropy',optimizer='adam',metrics=['accuracy'])\n",
+        "model.summary()\n",
+        "    \n",
+        "\n"
+      ],
+      "execution_count": 99,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Model: \"sequential_8\"\n",
+            "_________________________________________________________________\n",
+            "Layer (type)                 Output Shape              Param #   \n",
+            "=================================================================\n",
+            "embedding_8 (Embedding)      (None, 200, 32)           192032    \n",
+            "_________________________________________________________________\n",
+            "global_average_pooling1d (Gl (None, 32)                0         \n",
+            "_________________________________________________________________\n",
+            "dense_16 (Dense)             (None, 24)                792       \n",
+            "_________________________________________________________________\n",
+            "dense_17 (Dense)             (None, 6)                 150       \n",
+            "=================================================================\n",
+            "Total params: 192,974\n",
+            "Trainable params: 192,974\n",
+            "Non-trainable params: 0\n",
+            "_________________________________________________________________\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "F1Q7DVD-uYi-",
+        "outputId": "f501748c-1585-49f0-faa5-503b9143572e"
+      },
+      "source": [
+        "num_epochs= 10\n",
+        "\n",
+        "training_padded = np.array(train_padded)\n",
+        "training_labels = training_label_seq\n",
+        "validation_padded = np.array(val_padded)\n",
+        "validation_labels = val_label_seq\n",
+        "\n",
+        "history = model.fit(training_padded, training_labels, epochs=num_epochs, validation_data=(validation_padded, validation_labels), verbose=2)"
+      ],
+      "execution_count": 100,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Epoch 1/10\n",
+            "214/214 - 1s - loss: 1.2321 - accuracy: 0.4859 - val_loss: 0.9611 - val_accuracy: 0.4855\n",
+            "Epoch 2/10\n",
+            "214/214 - 1s - loss: 0.8022 - accuracy: 0.6606 - val_loss: 0.6427 - val_accuracy: 0.7711\n",
+            "Epoch 3/10\n",
+            "214/214 - 1s - loss: 0.5111 - accuracy: 0.8097 - val_loss: 0.4717 - val_accuracy: 0.8092\n",
+            "Epoch 4/10\n",
+            "214/214 - 1s - loss: 0.3770 - accuracy: 0.8574 - val_loss: 0.3906 - val_accuracy: 0.8500\n",
+            "Epoch 5/10\n",
+            "214/214 - 1s - loss: 0.2953 - accuracy: 0.8920 - val_loss: 0.3450 - val_accuracy: 0.8645\n",
+            "Epoch 6/10\n",
+            "214/214 - 1s - loss: 0.2423 - accuracy: 0.9151 - val_loss: 0.3174 - val_accuracy: 0.8842\n",
+            "Epoch 7/10\n",
+            "214/214 - 1s - loss: 0.2079 - accuracy: 0.9314 - val_loss: 0.3061 - val_accuracy: 0.8921\n",
+            "Epoch 8/10\n",
+            "214/214 - 1s - loss: 0.1829 - accuracy: 0.9383 - val_loss: 0.3014 - val_accuracy: 0.8947\n",
+            "Epoch 9/10\n",
+            "214/214 - 1s - loss: 0.1614 - accuracy: 0.9462 - val_loss: 0.3020 - val_accuracy: 0.8934\n",
+            "Epoch 10/10\n",
+            "214/214 - 1s - loss: 0.1450 - accuracy: 0.9535 - val_loss: 0.3023 - val_accuracy: 0.8961\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 541
+        },
+        "id": "doHBYA5byfwu",
+        "outputId": "ede4d3ea-9363-4f2f-9882-c26e0d532c70"
+      },
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "\n",
+        "def plot_graphs(history, string):\n",
+        "  plt.plot(history.history[string])\n",
+        "  plt.plot(history.history['val_'+string])\n",
+        "  plt.xlabel(\"Epochs\")\n",
+        "  plt.ylabel(string)\n",
+        "  plt.legend([string, 'val_'+string])\n",
+        "  plt.show()\n",
+        "  \n",
+        "plot_graphs(history, \"accuracy\")\n",
+        "plot_graphs(history, \"loss\")"
+      ],
+      "execution_count": 101,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 432x288 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 432x288 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "A9JKSNBmyvF7"
+      },
+      "source": [
+        "reverse_word_index = dict([(value, key) for (key, value) in word_index.items()])\n",
+        "\n",
+        "def decode_sentence(text):\n",
+        "    return ' '.join([reverse_word_index.get(i, '?') for i in text])"
+      ],
+      "execution_count": 102,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "XEv5w5pTy9vb",
+        "outputId": "9e0fbecd-e875-4535-f44a-c8859b5261ac"
+      },
+      "source": [
+        "e = model.layers[0]\n",
+        "weights = e.get_weights()[0]\n",
+        "print(weights.shape) # shape: (vocab_size, embedding_dim)"
+      ],
+      "execution_count": 103,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "(6001, 32)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9mt9gy78zCnz"
+      },
+      "source": [
+        "import io\n",
+        "\n",
+        "out_v = io.open('vecs.tsv', 'w', encoding='utf-8')\n",
+        "out_m = io.open('meta.tsv', 'w', encoding='utf-8')\n",
+        "for word_num in range(1, vocab_size):\n",
+        "  word = reverse_word_index[word_num]\n",
+        "  embeddings = weights[word_num]\n",
+        "  out_m.write(word + \"\\n\")\n",
+        "  out_v.write('\\t'.join([str(x) for x in embeddings]) + \"\\n\")\n",
+        "out_v.close()\n",
+        "out_m.close()"
+      ],
+      "execution_count": 104,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 17
+        },
+        "id": "bfxy8zB9zDjD",
+        "outputId": "069583fb-bd4f-46bf-a930-6db44777c511"
+      },
+      "source": [
+        "try:\n",
+        "  from google.colab import files\n",
+        "except ImportError:\n",
+        "  pass\n",
+        "else:\n",
+        "  files.download('vecs.tsv')\n",
+        "  files.download('meta.tsv')"
+      ],
+      "execution_count": 105,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/javascript": [
+              "\n",
+              "    async function download(id, filename, size) {\n",
+              "      if (!google.colab.kernel.accessAllowed) {\n",
+              "        return;\n",
+              "      }\n",
+              "      const div = document.createElement('div');\n",
+              "      const label = document.createElement('label');\n",
+              "      label.textContent = `Downloading \"${filename}\": `;\n",
+              "      div.appendChild(label);\n",
+              "      const progress = document.createElement('progress');\n",
+              "      progress.max = size;\n",
+              "      div.appendChild(progress);\n",
+              "      document.body.appendChild(div);\n",
+              "\n",
+              "      const buffers = [];\n",
+              "      let downloaded = 0;\n",
+              "\n",
+              "      const channel = await google.colab.kernel.comms.open(id);\n",
+              "      // Send a message to notify the kernel that we're ready.\n",
+              "      channel.send({})\n",
+              "\n",
+              "      for await (const message of channel.messages) {\n",
+              "        // Send a message to notify the kernel that we're ready.\n",
+              "        channel.send({})\n",
+              "        if (message.buffers) {\n",
+              "          for (const buffer of message.buffers) {\n",
+              "            buffers.push(buffer);\n",
+              "            downloaded += buffer.byteLength;\n",
+              "            progress.value = downloaded;\n",
+              "          }\n",
+              "        }\n",
+              "      }\n",
+              "      const blob = new Blob(buffers, {type: 'application/binary'});\n",
+              "      const a = document.createElement('a');\n",
+              "      a.href = window.URL.createObjectURL(blob);\n",
+              "      a.download = filename;\n",
+              "      div.appendChild(a);\n",
+              "      a.click();\n",
+              "      div.remove();\n",
+              "    }\n",
+              "  "
+            ],
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          }
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/javascript": [
+              "download(\"download_f9b4e956-a545-4fe7-a03d-680998ff3f2c\", \"vecs.tsv\", 2226552)"
+            ],
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          }
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/javascript": [
+              "\n",
+              "    async function download(id, filename, size) {\n",
+              "      if (!google.colab.kernel.accessAllowed) {\n",
+              "        return;\n",
+              "      }\n",
+              "      const div = document.createElement('div');\n",
+              "      const label = document.createElement('label');\n",
+              "      label.textContent = `Downloading \"${filename}\": `;\n",
+              "      div.appendChild(label);\n",
+              "      const progress = document.createElement('progress');\n",
+              "      progress.max = size;\n",
+              "      div.appendChild(progress);\n",
+              "      document.body.appendChild(div);\n",
+              "\n",
+              "      const buffers = [];\n",
+              "      let downloaded = 0;\n",
+              "\n",
+              "      const channel = await google.colab.kernel.comms.open(id);\n",
+              "      // Send a message to notify the kernel that we're ready.\n",
+              "      channel.send({})\n",
+              "\n",
+              "      for await (const message of channel.messages) {\n",
+              "        // Send a message to notify the kernel that we're ready.\n",
+              "        channel.send({})\n",
+              "        if (message.buffers) {\n",
+              "          for (const buffer of message.buffers) {\n",
+              "            buffers.push(buffer);\n",
+              "            downloaded += buffer.byteLength;\n",
+              "            progress.value = downloaded;\n",
+              "          }\n",
+              "        }\n",
+              "      }\n",
+              "      const blob = new Blob(buffers, {type: 'application/binary'});\n",
+              "      const a = document.createElement('a');\n",
+              "      a.href = window.URL.createObjectURL(blob);\n",
+              "      a.download = filename;\n",
+              "      div.appendChild(a);\n",
+              "      a.click();\n",
+              "      div.remove();\n",
+              "    }\n",
+              "  "
+            ],
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          }
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/javascript": [
+              "download(\"download_8d9ff030-bdb0-4369-a8fa-f26fc05a0820\", \"meta.tsv\", 50730)"
+            ],
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          }
+        }
+      ]
+    }
+  ]
+}
